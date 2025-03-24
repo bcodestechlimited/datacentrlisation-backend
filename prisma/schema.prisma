@@ -1,0 +1,777 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  superadmin
+  admin
+  employee1
+  employee2
+  employee3
+}
+
+model User {
+  id          String    @id @default(uuid())
+  email       String    @unique
+  password    String?
+  role        Role      @default(employee1)
+  departmentId String?  
+  employeeId  String?   @unique
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  employee    Employee? @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  department  Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  session     Session?
+
+  @@map("users")
+}
+
+model Employee {
+  id          String   @id @default(uuid())
+  name        String
+  email       String   @unique
+  salary      Int
+  joiningDate DateTime @default(now())
+  departmentId String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  department  Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  user        User?
+
+  @@map("employees")
+}
+
+model Department {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  employees Employee[]
+  users     User[]
+
+  @@map("departments")
+}
+
+
+
+
+
+
+model Session {
+  id           String   @id @unique @default(uuid())
+  userId       String   @unique
+  sessionToken String
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+// BusinessAdvisorySBU
+
+model WeeklyIncome {
+  id          String    @id @default(uuid())
+  weekNumber  Int       // Week number (e.g., 1 for Week 1, 2 for Week 2, etc.)
+  income      Float     // Total income for the week
+  month       String    // Month for which the income is recorded (e.g., "January")
+  year        Int       // Year for which the income is recorded (e.g., 2023)
+  description String?   // Optional description or notes about the weekly income
+  createdAt   DateTime  @default(now()) // Timestamp when the entry was created
+  updatedAt   DateTime  @updatedAt      // Timestamp when the entry was last updated
+
+  // User who created the entry (stored as a plain string, no relation)
+  userId      String
+
+  // Edit log (stores all modifications)
+  edits       WeeklyIncomeEditLog[]
+
+  @@map("weekly_incomes")
+}
+
+model WeeklyIncomeEditLog {
+  id            String   @id @default(uuid())
+  weeklyIncomeId String
+  editedById    String   // User who made the edit (stored as a plain string, no relation)
+  oldIncome     Float    // Previous income value before the edit
+  newIncome     Float    // New income value after the edit
+  editedAt      DateTime @default(now()) // Timestamp of the edit
+
+  weeklyIncome  WeeklyIncome @relation(fields: [weeklyIncomeId], references: [id], onDelete: Cascade)
+
+  @@map("edit_logs")
+}
+
+
+
+model Client {
+  id          String    @id @default(uuid())
+  name        String
+  email       String    
+  signupDate  DateTime  @default(now()) // Date the client was acquired
+  isNewClient Boolean   @default(true)  // Tracks if the client is new
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // User who created the client entry (stored as a plain string)
+  userId      String
+
+  @@map("clients")
+}
+
+model HotProspect {
+  id          String    @id @default(uuid())
+  name        String
+  email       String    
+  status      String    @default("Pending") // e.g., Pending, Contacted, Converted
+  value       Float     // Estimated value of the prospect
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // User who added the prospect (stored as a plain string)
+  userId      String
+
+  @@map("hot_prospects")
+}
+
+
+
+
+
+model LearningAndDevelopment {
+  id              String    @id @default(uuid())
+  clientName      String    // Client Name
+  companyName     String    // Company Name
+  industry        String    // Industry
+  businessType    String    // Business Type (Startup, SME, Corporate, Government, etc.)
+  location        String    // Location (City, Country)
+  contactPerson   String    // Contact Person Name
+  contactEmail    String    // Contact Email
+  phoneNumber     String    // Phone Number
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // User who created the record
+  userId          String
+
+  @@map("learning_and_development")
+}
+
+
+
+
+
+// LearningAndDevelopment
+
+
+model ClientInfo {
+  id              String    @id @default(uuid())
+  clientName      String
+  companyName     String
+  industry        String
+  businessType    String    // Startup, SME, Corporate, Government, etc.
+  location        String    // City, Country
+  contactPerson   String
+  contactEmail    String
+  phoneNumber     String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+
+    // User who created the record
+  userId          String
+}
+
+model OutsourcedTraining {
+  id              String    @id @default(uuid())
+  trainingTitle   String
+  trainingProvider String   // Company/Consultant Name
+  trainingType    String    // Virtual, In-Person, Hybrid
+  trainingCategory String   // HRBP, People Outsourcing, Leadership, Compliance, etc.
+  targetAudience  String    // Managers, Employees, Executives, HR Team, etc.
+  startDate       DateTime
+  endDate         DateTime
+  trainingLocation String?  // If In-Person
+  participants    Participant[]
+  trainingContent TrainingContent[]
+  evaluation      Evaluation[]
+  cost            Cost[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+
+    // User who created the record
+  userId          String
+}
+
+model Participant {
+  id              String    @id @default(uuid())
+  trainingId      String
+  training        OutsourcedTraining @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  participantName String
+  jobRole         String
+  department      String
+  companyName     String?   // If external
+  emailAddress    String
+  phoneNumber     String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+
+    // User who created the record
+  userId          String
+}
+
+model TrainingContent {
+  id              String    @id @default(uuid())
+  trainingId      String
+  training        OutsourcedTraining @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  modulesCovered  String[]
+  facilitatorNames String[]
+  modeOfDelivery  String    // Lecture, Workshop, Case Study, Hands-On, etc.
+  materialsProvided String[] // PPT, PDF, Videos, Handouts, etc.
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+
+    // User who created the record
+  userId          String
+}
+
+model Evaluation {
+  id              String    @id @default(uuid())
+  trainingId      String
+  training        OutsourcedTraining @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  feedbackScore   Int       // 1-10
+  keyLearnings    String[]
+  challenges      String[]
+  suggestions     String[]
+  certificationProvided Boolean
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+
+    // User who created the record
+  userId          String
+}
+
+model Cost {
+  id              String    @id @default(uuid())
+  trainingId      String
+  training        OutsourcedTraining @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  trainingFee     Float
+  paymentStatus   String    // Paid, Pending, Overdue
+  paymentDate     DateTime?
+  modeOfPayment   String    // Bank Transfer, Cheque, etc.
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+
+    // User who created the record
+  userId          String
+}
+
+
+model InternalTraining {
+  id              String    @id @default(uuid())
+  trainingTitle   String
+  trainingObjective String  // Skill Development, Compliance, Leadership, etc.
+  trainingCategory String   // HR Policies, Employee Development, Soft Skills, Technical Skills, etc.
+  targetAudience  String    // New Hires, Managers, Executives, All Employees, etc.
+  startDate       DateTime
+  endDate         DateTime
+  trainingMode    String    // In-Person, Virtual, Hybrid
+  trainingLocation String?  // If In-Person
+  participants    InternalParticipant[]
+  trainingContent InternalTrainingContent[]
+  evaluation      InternalEvaluation[]
+  cost            InternalCost[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+
+    // User who created the record
+  userId          String
+}
+
+model InternalParticipant {
+  id              String    @id @default(uuid())
+  trainingId      String
+  training        InternalTraining @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  employeeName    String
+  employeeId      String
+  department      String
+  jobRole         String
+  emailAddress    String
+  phoneNumber     String
+  attendanceStatus String   // Attended, Absent, Late
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+
+    // User who created the record
+  userId          String
+}
+
+model InternalTrainingContent {
+  id              String    @id @default(uuid())
+  trainingId      String
+  training        InternalTraining @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  modulesCovered  String[]
+  facilitatorNames String[]
+  materialsProvided String[] // PPT, PDF, Videos, Handouts, etc.
+  methodology     String    // Lecture, Workshop, Hands-On, Role Play, etc.
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+
+    // User who created the record
+  userId          String
+}
+
+model InternalEvaluation {
+  id              String    @id @default(uuid())
+  trainingId      String
+  training        InternalTraining @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  preTrainingScore Float?   // Pre-Training Assessment Score
+  postTrainingScore Float?  // Post-Training Assessment Score
+  feedbackScore   Int       // 1-10
+  keyLearnings    String[]
+  challenges      String[]
+  suggestions     String[]
+  certificationProvided Boolean
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+
+    // User who created the record
+  userId          String
+}
+
+model InternalCost {
+  id              String    @id @default(uuid())
+  trainingId      String
+  training        InternalTraining @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  trainingCost    Float?
+  budgetAllocation Float?
+  approvalStatus  String    // Pending, Approved, Rejected
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+
+    // User who created the record
+  userId          String
+}
+
+
+
+model FleetFueling {
+  id              String    @id @default(uuid())
+  vehicleId       String
+  vehicleType     String
+  driverName      String
+  fuelingDate     DateTime
+  litersPurchased Float
+  totalFuelCost   Float
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  userId          String
+}
+
+
+model FleetRepairs {
+  id                String    @id @default(uuid())
+  vehicleId         String
+  vehicleType       String
+  repairDate        DateTime
+  workshopName      String
+  description       String
+  partsReplaced     String[]
+  repairCost        Float
+  paymentStatus     String
+  approvedBy        String
+  invoiceUrl        String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  userId            String
+}
+
+model FleetDatabase {
+  id                String    @id @default(uuid())
+  vehicleId         String
+  vehicleType       String
+  makeModel         String
+  yearOfManufacture Int
+  chassisNumber     String
+  engineNumber      String
+  assignedDriver    String
+  currentLocation   String?
+  dateOfPurchase    DateTime
+  insuranceStatus   String
+  nextServiceDate   DateTime
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  userId            String
+}
+
+
+
+model SmoothTracker {
+  id                String    @id @default(uuid())
+  vehicleId         String
+  vehicleType       String
+  trackingDeviceId  String
+  distanceCovered   Float
+  fuelConsumption   Float
+  alerts            String[]
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  userId            String
+}
+
+
+
+
+
+
+// Impress Analysis Model
+model ImpressAnalysis {
+  id               String   @id @default(uuid())
+  regionName       String
+  officeName       String
+  reportDate       DateTime
+  budgetAllocated  Float
+  amountSpent      Float
+  variance         Float
+  expenseCategories Json    // Stored as JSON array of objects
+  approvalStatus   String   // Enum: "Pending", "Approved", "Rejected"
+  documentUrl      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  userId            String
+
+
+  @@index([regionName])
+}
+
+// ICU Cost Reduction Model
+model ICUCostReduction {
+  id                  String   @id @default(uuid())
+  businessUnit        String
+  reportDate          DateTime
+  costSavingAreas     Json     // Stored as JSON array of strings
+  reductionStrategies Json     // Stored as JSON array of strings
+  projectedSavings    Float
+  actualSavings       Float
+  implementationStatus String  // Enum: "Pending", "In Progress", "Completed"
+  challenges          Json?    // Stored as JSON array of strings
+  documentUrl         String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  userId            String
+
+
+  @@index([businessUnit])
+}
+
+// Pre-Employment Medical Model
+model PreEmploymentMedical {
+  id             String   @id @default(uuid())
+  candidateName  String
+  jobPosition    String
+  department     String
+  examDate       DateTime
+  medicalFacility String
+  testsConducted Json     // Stored as JSON array of strings
+  medicalStatus  String   // Enum: "Fit", "Unfit", "Requires Further Review"
+  reportUrl      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  userId            String
+
+
+  @@index([candidateName])
+  @@index([department])
+}
+
+// Verification Report Model
+model VerificationReport {
+  id                String   @id @default(uuid())
+  candidateName     String
+  jobPosition       String
+  verificationType  String   // Enum: "Employment History", "Academic Records", "Criminal Record", "Reference Check"
+  verificationStatus String  // Enum: "Completed", "Pending", "Issues Found"
+  verificationDate  DateTime
+  verifiedBy        String
+  reportSummary     String   @db.Text
+  documentUrl       String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  userId            String
+
+
+  @@index([candidateName])
+  @@index([verificationType])
+}
+
+
+
+model ATS {
+  id                String   @id @default(uuid())
+  candidateId       String
+  fullName          String
+  positionApplied   String
+  resumeUrl         String?
+  applicationDate   DateTime
+  recruitmentStatus String   // "Screened", "Interviewed", "Hired", "Rejected"
+  guarantors        Json?    // Array of guarantor objects
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  userId            String
+
+
+  @@index([candidateId])
+  @@index([fullName])
+}
+
+model SLA {
+  id                 String   @id @default(uuid())
+  slaId              String
+  clientName         String
+  agreementType      String   // "Service Contract", "Employment Terms", etc.
+  startDate          DateTime
+  endDate            DateTime
+  keyTerms           String   @db.Text
+  approvalStatus     String   // "Draft", "Approved", "Signed"
+  supportingDocs     Json?    // Array of document paths
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  userId            String
+
+
+  @@index([slaId])
+  @@index([clientName])
+}
+
+model ClientInformation {
+  id             String   @id @default(uuid())
+  clientId       String
+  clientName     String
+  companyName    String
+  contactPerson  String
+  phone          String
+  email          String
+  businessAddress String @db.Text
+  contractType   String?
+  documents      Json?    // Array of document paths
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  userId            String
+
+
+  @@index([clientId])
+  @@index([clientName])
+}
+
+
+model JobPortal {
+  id                  String   @id @default(uuid())
+  jobId               String
+  jobTitle            String
+  companyName         String
+  location            String
+  applicationDeadline DateTime
+  numberOfApplicants  Int
+  jobStatus           String   // "Open", "Closed", "Filled"
+  postingPlatform     String   // Job Portal Name
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  userId              String
+
+  @@index([jobId])
+  @@index([jobTitle])
+}
+
+model WhatsAppStatus {
+  id                  String   @id @default(uuid())
+  jobTitle            String
+  companyName         String
+  datePosted          DateTime
+  engagement          Json     // { clicks: Int, shares: Int, inquiries: Int }
+  numberOfApplicants  Int
+  recruiterContact    String
+  applicationLink     String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  userId              String
+
+  @@index([jobTitle])
+  @@index([companyName])
+}
+
+model Referral {
+  id                  String   @id @default(uuid())
+  referredCandidate   String
+  referringPerson     String
+  jobTitleApplied     String
+  referringContact    String
+  candidateContact    String
+  applicationDate     DateTime
+  recruitmentStatus   String   // "Screened", "Interviewed", "Hired", "Rejected"
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  userId              String
+
+  @@index([referredCandidate])
+  @@index([referringPerson])
+}
+
+
+model Driver {
+  id                  String   @id @default(uuid())
+  driverId            String
+  fullName            String
+  phoneNumber         String
+  dateOfBirth         DateTime
+  licenseNumber       String
+  licenseExpiryDate   DateTime
+  employmentStatus    String   // "Active", "Suspended", "Terminated"
+  dateOfEmployment    DateTime
+  assignedVehicle     String?
+  vehicleLicensePlate String?
+  address             String
+  nextOfKinName       String
+  nextOfKinContact    String
+  medicalFitnessStatus String  // "Fit", "Unfit", "Pending"
+  lastTrainingDate    DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  userId              String
+
+  @@index([driverId])
+  @@index([fullName])
+}
+
+
+
+
+model BusinessPerformanceReport {
+  id                     String   @id @default(uuid())
+  reportId               String
+  reportingPeriod        String   // Month/Year
+  totalRevenue           Float
+  totalExpenses          Float
+  netProfitLoss          Float
+  keyPerformanceIndicators Json   // Array of KPIs
+  topPerformingServices  Json     // Array of top-performing services/products
+  clientAcquisitionCount Int
+  operationalChallenges  String
+  generatedBy            String
+  approvalStatus         String   // "Pending", "Approved", "Rejected"
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  userId                 String
+
+  @@index([reportId])
+  @@index([reportingPeriod])
+}
+
+model RecruitmentReport {
+  id                     String   @id @default(uuid())
+  reportId               String
+  reportingPeriod        String   // Month/Year
+  totalJobOpenings       Int
+  applicationsReceived   Int
+  candidatesInterviewed  Int
+  candidatesHired        Int
+  timeToFill             Int      // Average days to hire
+  candidateSourceBreakdown Json   // Object with breakdown (Referrals, Job Portals, etc.)
+  recruitmentChallenges  String
+  generatedBy            String
+  approvalStatus         String   // "Pending", "Approved", "Rejected"
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  userId                 String
+
+  @@index([reportId])
+  @@index([reportingPeriod])
+}
+
+
+
+
+model GombeCandidate {
+  id                  String   @id @default(uuid())
+  candidateId         String
+  fullName            String
+  jobTitleApplied     String
+  applicationDate     DateTime
+  recruitmentStatus   String   // "Screened", "Interviewed", "Hired", "Rejected"
+  phoneNumber         String
+  emailAddress        String
+  resumeUrl           String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  userId              String
+
+  @@index([candidateId])
+  @@index([fullName])
+}
+
+model GombeClient {
+  id                  String   @id @default(uuid())
+  clientId            String
+  clientName          String
+  companyName         String
+  contactPerson       String
+  phoneNumber         String
+  emailAddress        String
+  businessAddress     String
+  clientStatus        String   // "Active", "Prospect", "Lost"
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  userId              String
+
+  @@index([clientId])
+  @@index([clientName])
+}
+
+model GombeOfficeAsset {
+  id                  String   @id @default(uuid())
+  assetId             String
+  deviceType          String   // "Laptop", "Monitor", "Keyboard", "Mouse", etc.
+  brandModel          String
+  serialNumber        String
+  assignedTo          String
+  purchaseDate        DateTime
+  currentStatus       String   // "Active", "Under Repair", "Retired"
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  userId              String
+
+  @@index([assetId])
+  @@index([deviceType])
+}
