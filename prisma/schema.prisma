@@ -775,3 +775,166 @@ model GombeOfficeAsset {
   @@index([assetId])
   @@index([deviceType])
 }
+
+
+model PortHarcourtFinancialTransaction {
+  id                  String   @id @default(uuid())
+  transactionId       String
+  transactionDate     DateTime
+  customerVendorName  String
+  transactionType     String   // "Invoice", "Payment", "Expense", "Refund", etc.
+  amount              Float
+  paymentMethod      String   // "Bank Transfer", "Cash", "Cheque", "Online Payment", etc.
+  invoiceReceiptNumber String?
+  transactionStatus   String   // "Pending", "Completed", "Overdue", "Reversed"
+  category            String   // "Rent", "Utilities", "Inventory", etc.
+  documentUrl         String?  // PDF, Receipt, Invoice
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  userId              String
+
+  @@index([transactionId])
+  @@index([transactionDate])
+}
+
+model IbadanFleet {
+  id                  String   @id @default(uuid())
+  vehicleId           String
+  vehicleTypeModel    String
+  licensePlateNumber  String
+  chassisNumber       String
+  vehicleStatus       String   // "Active", "Under Maintenance", "Retired"
+  assignedDriver      String?
+  fuelConsumptionRate String   // Can be "10 km/l" or "₦50/km"
+  lastServiceDate     DateTime
+  nextServiceDueDate  DateTime
+  insuranceExpiryDate DateTime
+  mileage            Int      // in km
+  ownershipStatus     String   // "Company-Owned", "Leased", "Rented"
+  accidentRepairHistory Json?  // Array of { date: Date, repairType: String, cost: Float }
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  userId              String
+
+  @@index([vehicleId])
+  @@index([licensePlateNumber])
+}
+
+
+
+model KanoCandidateDocument {
+  id                     String   @id @default(uuid())
+  candidateName          String
+  applicationID          String
+  jobTitleAppliedFor     String
+  resumeCV               String
+  educationalCertificates String[] // Array of references to certificate files
+  referenceLetters       String[] // Array of references to letter files
+  backgroundCheckReports String[] // Array of references to report files
+  recruitmentStatus      String   // "Screened", "Interviewed", "Hired", "Rejected"
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  userId                 String
+
+  @@index([applicationID])
+  @@index([candidateName])
+  @@index([recruitmentStatus])
+}
+
+
+model KanoFleet {
+  id                 String   @id @default(uuid())
+  vehicleId          String   @unique
+  vehicleTypeModel   String
+  licensePlateNumber String   @unique
+  currentStatus      String   // "Active", "Under Repair", "Retired"
+  lastMaintenanceDate DateTime
+  assignedDriver     String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  userId                 String
+
+
+  @@index([vehicleId])
+  @@index([licensePlateNumber])
+  @@index([currentStatus])
+}
+
+
+model KanoApplicant {
+  id                 String   @id @default(uuid())
+  candidateName      String
+  applicationID      String   @unique
+  jobTitleAppliedFor String
+  dateOfApplication  DateTime
+  recruitmentStatus  String   // "Screened", "Interviewed", "Hired", "Rejected"
+  assignedRecruiter  String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  userId                 String
+
+
+  @@index([applicationID])
+  @@index([recruitmentStatus])
+  @@index([assignedRecruiter])
+}
+
+
+
+model KanoClient {
+  id              String     @id @default(uuid())
+  name            String
+  companyName     String?
+  contactPerson   String
+  phoneNumber     String
+  email           String
+  businessAddress String
+  status          String     // "Active", "Prospect", "Lost"
+  accountManager  String
+
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  userId                 String
+
+
+
+}
+
+
+model KanoComplianceDocument {
+  id             String     @id @default(uuid())
+  documentType   String     // "Tax Clearance", etc.
+  issuingBody    String
+  dateIssued     DateTime
+  expiryDate     DateTime?
+  companyName    String
+  referenceNumber String
+  approvalStatus String     // "Pending", "Approved", "Rejected"
+  createdAt      DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  userId                 String
+
+  
+}
+
+
+
+model OnboardedStaff {
+  id                    String   @id @default(uuid())
+  staffId               String   @unique
+  fullName              String
+  resumptionForm        String   // Path to signed PDF
+  bankAccountDetails    Json     // { accountNumber: string, bankName: string }
+  bvn                   String
+  pfaDetails            Json     // { pfaName: string, rsaNumber: string }
+  officialEmail         String   @unique
+  officialPhone         String
+  emergencyContact      Json     // { name: string, relationship: string, phone: string }
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  userId                String   // User who created the record
+
+  @@index([staffId])
+  @@index([fullName])
+  @@index([officialEmail])
+}

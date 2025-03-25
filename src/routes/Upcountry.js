@@ -1733,4 +1733,313 @@ UpcountryRouter.delete(
     }
   }
 );
+
+const PortHarcourtFinancialTransactionSchema = z.object({
+  transactionId: z.string().min(1, "Transaction ID is required"),
+  transactionDate: z.coerce.date({ message: "Invalid transaction date" }),
+  customerVendorName: z.string().min(1, "Customer/Vendor name is required"),
+  transactionType: z.enum(["Invoice", "Payment", "Expense", "Refund"], {
+    message: "Invalid transaction type",
+  }),
+  amount: z.number().min(0, "Amount must be positive"),
+  amount: z.coerce.number().min(0, "Amount must be positive"), // Add z.coerce
+  paymentMethod: z.enum(["Bank Transfer", "Cash", "Cheque", "Online Payment"], {
+    message: "Invalid payment method",
+  }),
+  invoiceReceiptNumber: z.string().optional(),
+  transactionStatus: z.enum(["Pending", "Completed", "Overdue", "Reversed"], {
+    message: "Invalid transaction status",
+  }),
+  category: z.enum(
+    ["Rent", "Utilities", "Inventory", "Office Supplies", "Vendor Payment"],
+    {
+      message: "Invalid category",
+    }
+  ),
+  documentUrl: z.string().optional(),
+});
+
+UpcountryRouter.post(
+  "/port-harcourt/transaction",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      if (typeof req.body.amount === "string") {
+        req.body.amount = Number(req.body.amount);
+      }
+      let documentUrl = null;
+
+      // Handle file upload if present
+      if (req.files?.document) {
+        const file = req.files.document;
+        const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
+
+        if (!allowedTypes.includes(file.mimetype)) {
+          return res
+            .status(400)
+            .json({ error: "Only PDF, JPEG, or PNG files allowed" });
+        }
+
+        const fileName = `${Date.now()}-${file.name}`;
+        const filePath = path.join(UPLOADS_DIR, fileName);
+        await file.mv(filePath);
+        documentUrl = `/uploads/${fileName}`;
+      }
+
+      const validatedData = PortHarcourtFinancialTransactionSchema.parse({
+        ...req.body,
+        transactionDate: new Date(req.body.transactionDate),
+      });
+
+      const transaction = await prisma.portHarcourtFinancialTransaction.create({
+        data: {
+          ...validatedData,
+          documentUrl,
+          userId: req.user.userId,
+        },
+      });
+
+      res.status(201).json({
+        message: "Transaction created successfully",
+        transaction,
+        documentUrl: documentUrl
+          ? `${req.protocol}://${req.get("host")}${documentUrl}`
+          : null,
+      });
+    } catch (error) {
+      handleErrorResponse(error, res);
+    }
+  }
+);
+
+UpcountryRouter.get(
+  "/port-harcourt/transaction",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const transactions =
+        await prisma.portHarcourtFinancialTransaction.findMany();
+      res.status(200).json(transactions);
+    } catch (error) {
+      handleErrorResponse(error, res);
+    }
+  }
+);
+
+UpcountryRouter.get(
+  "/port-harcourt/transaction/:id",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const transaction =
+        await prisma.portHarcourtFinancialTransaction.findUnique({
+          where: { id },
+        });
+
+      if (!transaction) {
+        return res.status(404).json({ error: "Transaction not found" });
+      }
+
+      res.status(200).json(transaction);
+    } catch (error) {
+      handleErrorResponse(error, res);
+    }
+  }
+);
+UpcountryRouter.delete(
+  "/port-harcourt/transaction/:id",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      await prisma.portHarcourtFinancialTransaction.delete({ where: { id } });
+      res.status(204).end();
+    } catch (error) {
+      handleErrorResponse(error, res);
+    }
+  }
+);
+
+UpcountryRouter.patch(
+  "/port-harcourt/transaction/:id",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updateData = { ...req.body };
+
+      // Only process amount if it exists in request
+      if ("amount" in updateData) {
+        const numAmount = Number(updateData.amount);
+        if (isNaN(numAmount)) {
+          return res
+            .status(400)
+            .json({ error: "Amount must be a valid number" });
+        }
+        updateData.amount = numAmount;
+      }
+
+      // Partial validation (won't require amount if not provided)
+      const validatedData =
+        PortHarcourtFinancialTransactionSchema.partial().parse(updateData);
+
+      const updatedTransaction =
+        await prisma.portHarcourtFinancialTransaction.update({
+          where: { id },
+          data: validatedData,
+        });
+
+      res.status(200).json({
+        message: "Transaction updated successfully",
+        transaction: updatedTransaction,
+      });
+    } catch (error) {
+      handleErrorResponse(error, res);
+    }
+  }
+);
+
+const IbadanFleetSchema = z.object({
+  vehicleId: z.string().min(1, "Vehicle ID is required"),
+  vehicleTypeModel: z.string().min(1, "Vehicle type/model is required"),
+  licensePlateNumber: z.string().min(1, "License plate is required"),
+  chassisNumber: z.string().min(1, "Chassis number is required"),
+  vehicleStatus: z.enum(["Active", "Under Maintenance", "Retired"]),
+  assignedDriver: z.string().optional(),
+  fuelConsumptionRate: z.string().min(1, "Fuel consumption rate is required"),
+  lastServiceDate: z.coerce.date(),
+  nextServiceDueDate: z.coerce.date(),
+  insuranceExpiryDate: z.coerce.date(),
+  mileage: z.number().int().min(0),
+  ownershipStatus: z.enum(["Company-Owned", "Leased", "Rented"]),
+  accidentRepairHistory: z
+    .array(
+      z.object({
+        date: z.coerce.date(),
+        repairType: z.string(),
+        cost: z.number().min(0),
+      })
+    )
+    .optional(),
+});
+
+// CREATE
+UpcountryRouter.post("/ibadan/fleet", authenticateToken, async (req, res) => {
+  try {
+    const validatedData = IbadanFleetSchema.parse({
+      ...req.body,
+      lastServiceDate: new Date(req.body.lastServiceDate),
+      nextServiceDueDate: new Date(req.body.nextServiceDueDate),
+      insuranceExpiryDate: new Date(req.body.insuranceExpiryDate),
+    });
+
+    const vehicle = await prisma.ibadanFleet.create({
+      data: {
+        ...validatedData,
+        userId: req.user.userId,
+      },
+    });
+
+    res.status(201).json(vehicle);
+  } catch (error) {
+    handleErrorResponse(error, res);
+  }
+});
+
+// PATCH (with partial updates)
+UpcountryRouter.patch(
+  "/ibadan/fleet/:id",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updateData = { ...req.body };
+
+      // 1. Handle numeric fields (convert strings to numbers)
+      if ("mileage" in updateData) {
+        updateData.mileage = Number(updateData.mileage);
+        if (isNaN(updateData.mileage)) {
+          return res
+            .status(400)
+            .json({ error: "Mileage must be a valid number" });
+        }
+      }
+
+      // 2. Handle date fields (convert strings to Date objects)
+      const dateFields = [
+        "lastServiceDate",
+        "nextServiceDueDate",
+        "insuranceExpiryDate",
+      ];
+      dateFields.forEach((field) => {
+        if (updateData[field]) {
+          updateData[field] = new Date(updateData[field]);
+        }
+      });
+
+      // 3. Validate only the provided fields (partial update)
+      const validatedData = IbadanFleetSchema.partial().parse(updateData);
+
+      // 4. Update only the specified fields
+      const updatedVehicle = await prisma.ibadanFleet.update({
+        where: { id },
+        data: validatedData,
+      });
+
+      res.status(200).json({
+        message: "Vehicle data partially updated successfully",
+        updatedFields: Object.keys(validatedData), // Show which fields were updated
+        vehicle: updatedVehicle,
+      });
+    } catch (error) {
+      handleErrorResponse(error, res);
+    }
+  }
+);
+
+UpcountryRouter.get("/ibadan/fleet", authenticateToken, async (req, res) => {
+  try {
+    const transactions = await prisma.ibadanFleet.findMany();
+    res.status(200).json(transactions);
+  } catch (error) {
+    handleErrorResponse(error, res);
+  }
+});
+
+UpcountryRouter.get(
+  "/ibadan/fleet/:id",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const transaction = await prisma.ibadanFleet.findUnique({
+        where: { id },
+      });
+
+      if (!transaction) {
+        return res.status(404).json({ error: "Transaction not found" });
+      }
+
+      res.status(200).json(transaction);
+    } catch (error) {
+      handleErrorResponse(error, res);
+    }
+  }
+);
+UpcountryRouter.delete(
+  "/ibadan/fleet/:id",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      await prisma.ibadanFleet.delete({ where: { id } });
+      res.status(204).end();
+    } catch (error) {
+      handleErrorResponse(error, res);
+    }
+  }
+);
+
+// GET, DELETE routes follow same pattern as previous implementations
 export { UpcountryRouter };
