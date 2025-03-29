@@ -20,24 +20,6 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 
 console.log(`Fleet routes using uploads directory: ${UPLOADS_DIR}`);
 
-// import { prismaClient as prisma } from "../../index.js";
-
-// const router = express.Router();
-
-// Use the same UPLOADS_DIR definition as in the main server file
-
-// const UPLOADS_DIR = path.join(process.cwd(), "uploads");
-// if (!fs.existsSync(UPLOADS_DIR)) {
-//   fs.mkdirSync(UPLOADS_DIR, { recursive: true }); // Ensure the directory is created recursively
-// }
-
-// Function to sanitize filenames (removes special characters & replaces spaces)
-// const sanitizeFilename = (filename) => {
-//   return filename
-//     .replace(/\s+/g, "_") // Replace spaces with underscores
-//     .replace(/[^a-zA-Z0-9_.-]/g, ""); // Keep only safe characters
-// };
-
 const prisma = new PrismaClient();
 const FleetRouter = express.Router();
 

@@ -938,3 +938,133 @@ model OnboardedStaff {
   @@index([fullName])
   @@index([officialEmail])
 }
+
+
+
+
+
+model Shared_Services_Admin_Vendor {
+  id              String     @id @default(uuid())
+  vendorId        String     @unique
+  vendorName      String
+  serviceProvided String
+  contactPerson   String
+  phoneNumber     String
+  email           String     @unique
+  businessAddress String
+  status          String     // Registered, Pending, Approved
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  userId                String   // User who created the record
+
+
+  @@index([vendorId])
+  @@index([vendorName])
+  @@index([email])
+}
+
+
+
+
+
+model ssadminstoreroom {
+  id               String     @id @default(uuid())
+  stockId          String     @unique
+  itemName         String
+  category         String     // Office Supplies, Cleaning, Electrical, etc.
+  quantity         Int
+  reorderLevel     Int
+  lastRestocked    DateTime
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  userId           String   // User who created the record
+
+
+  @@index([stockId])
+  @@index([itemName])
+  @@index([category])
+}
+
+model ssadminFacility {
+  id                String     @id @default(uuid())
+  facilityId        String     @unique
+  facilityName      String
+  location          String
+  assignedVendor    String
+  maintenanceStatus String     // Active, Due, Under Repair
+  lastMaintenance   DateTime
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  userId           String   // User who created the record
+
+  @@index([facilityId])
+  @@index([facilityName])
+}
+
+
+model ssadminJanitorialSupply {
+  id                String     @id @default(uuid())
+  itemId            String     @unique
+  itemName          String
+  category          String     // Cleaning Agents, Disinfectants, Equipment
+  quantity          Int
+  distributionDate  DateTime
+  recipient         String
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  userId           String   // User who created the record
+
+  @@index([itemId])
+  @@index([itemName])
+}
+
+
+model ssadminBill {
+  id              String     @id @default(uuid())
+  billId          String     @unique
+  serviceProvider String
+  billType        String     // Utility, Subscription, Internet, Tax, etc.
+  amount          Float
+  dueDate         DateTime
+  paymentStatus   String     // Paid, Pending, Overdue
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  userId           String   // User who created the record
+
+  @@index([billId])
+  @@index([serviceProvider])
+}
+
+
+model ssadminHSEReport {
+  id               String     @id @default(uuid())
+  reportId         String     @unique
+  incidentType     String     // Accident, Safety Violation, Near Miss
+  dateOfIncident   DateTime
+  location         String
+  personsInvolved  String
+  correctiveAction String
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  userId           String   // User who created the record
+
+  @@index([reportId])
+  @@index([incidentType])
+}
+
+model ssadminAdminMonthlyReport {
+  id                  String     @id @default(uuid())
+  reportId            String     @unique
+  monthYear           String
+  keyActivities       String
+  performanceSummary  String
+  budgetExpenses      String
+  challenges          String
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  userId           String   // User who created the record
+
+  @@index([reportId])
+  @@index([monthYear])
+}
+

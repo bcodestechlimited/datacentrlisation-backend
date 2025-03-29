@@ -8,6 +8,7 @@ import { FleetRouter } from "./Fleet.routes.js";
 import { CCIRouter } from "./CrystalChecksInternational.js";
 import { UpcountryRouter } from "./Upcountry.js";
 import { kanorouter } from "./Upcountrykano.js";
+import { sharedadminRouter } from "./sharedservice/admindept.js";
 // import { profileRouter } from "./profile.route";
 // import { dashboardRouter } from "./dashboard.route";
 const rootRouter = Router();
@@ -21,5 +22,6 @@ rootRouter.use("/Fleet", FleetRouter);
 rootRouter.use("/CCI", CCIRouter);
 rootRouter.use("/upcountry", UpcountryRouter);
 rootRouter.use("/upcountry/kano", kanorouter);
+rootRouter.use("/shared-services-admin", sharedadminRouter);
 
 export default rootRouter;
